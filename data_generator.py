@@ -1,10 +1,58 @@
+import os
+import numpy as np
 import tensorflow as tf
 
-def data_generator(features,labels,batch_size):
-  dataset = tf.data.Dataset.from_tensor_slices((tf.cast((features/255),tf.float32),labels))
-  dataset = dataset.shuffle(buffer_size=len(labels)+1)
-  dataset = dataset.batch(batch_size=batch_size,
-                          drop_remainder=True)
-  dataset = dataset.repeat()
-  dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-  return dataset
+class DataGenerator:
+    def __init__(
+        self,
+        mode,
+        data_path,
+        batch_size,
+        resize_dim,
+        shuffle=True,
+        n_channels=3,
+    ):
+        self.mode = mode
+        self.data_path = data_path
+        self.batch_size = batch_size
+        self.resize_dim = resize_dim
+        self.shuffle = shuffle
+        self.n_channels = n_channels
+        self.data = os.listdir((os.path.join(self.data_path, self.mode)))
+        self.on_epoch_end()
+
+    def __len__(self):
+        return int(np.ceil(len(self.data) / self.batch_size))
+
+    def __call__(self):
+        for i in self.index:
+            x, y = self.load(os.path.join(self.data_path, self.mode, self.data[i]))
+            yield x, y
+
+    def on_epoch_end(self):
+        self.index = np.arange(len(self.data))
+        if self.shuffle == True:
+            np.random.shuffle(self.index)
+
+    def preprocess(self, image):
+        if self.mode == "train":
+            image = tf.image.random_crop(
+                image, size=(self.resize_dim[0], self.resize_dim[1], 3)
+            )
+        image = tf.image.resize(
+            image, size=self.resize_dim, method=tf.image.ResizeMethod.BILINEAR
+        )
+
+        image = image / 255.0
+        image = tf.cast(image, tf.float32)
+        return image
+
+    def load(self, image_path):
+        image = tf.io.read_file(image_path)
+        image = tf.image.decode_png(image, channels=self.n_channels)
+        image.set_shape([None, None, self.n_channels])
+
+        image = self.preprocess(image)
+
+        return image
+
