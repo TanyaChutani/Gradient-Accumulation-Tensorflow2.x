@@ -35,10 +35,6 @@ class DataGenerator:
             np.random.shuffle(self.index)
 
     def preprocess(self, image):
-        if self.mode == "train":
-            image = tf.image.random_crop(
-                image, size=(self.resize_dim[0], self.resize_dim[1], 3)
-            )
         image = tf.image.resize(
             image, size=self.resize_dim, method=tf.image.ResizeMethod.BILINEAR
         )
