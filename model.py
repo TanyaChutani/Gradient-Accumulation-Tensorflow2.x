@@ -1,10 +1,28 @@
 import tensorflow as tf
 
-def model(num_classes):  
-  model_input = tf.keras.layers.Input(shape=(32,32,3),dtype=tf.float32)
-  model = tf.keras.applications.ResNet50(include_top=False,
-                                            pooling='avg',
-                                         input_tensor=model_input)
-  model.trainable = False
-  predictions = tf.keras.layers.Dense(num_classes,activation="softmax")(model.output)
-  return tf.keras.Model(inputs=model.input, outputs=predictions)
+class Classification(tf.keras.models.Model):
+  def __init__(self, num_classes=10.0, **kwargs):
+    super(Classification, self).__init__()
+    self.num_classes = num_classes
+    
+  def compile(self, optimizer, metric, loss_fn):
+      super(Classification, self).compile()
+      self.metric = metric
+      self.optimizer = optimizer
+      self.loss_fn = loss_fn
+
+  def build(self, input_shape):
+      self.resnet = tf.keras.applications.ResNet50(
+          include_top=False,
+          weights='imagenet',
+          input_tensor=None,
+          input_shape=None,
+          pooling='max',
+          classes=self.num_classes,
+      )
+      self.output_layer = tf.keras.layers.Dense(self.num_classes)
+  
+  def call(self, input_tensor):
+    x = self.resnet(input_tensor)
+    x = self.output_layer(x)
+    return x
