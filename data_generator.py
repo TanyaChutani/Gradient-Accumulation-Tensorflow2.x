@@ -15,7 +15,9 @@ class DataGenerator:
         self.batch_size = batch_size
         self.resize_dim = resize_dim
         self.n_channels = n_channels
+        self.load_dataset()
 
+    def load_dataset(self):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
         self.images, self.labels = (
